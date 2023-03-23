@@ -20,7 +20,7 @@ echo "Hello world!" > test.txt
 sudo ./pcstat --pid 1 -f test.txt
 ```
 
-output(not comlete): 
+output(not complete): 
 
 | path                                              | size    | pages | cached | uncached | percent            | timestamp  | mtime      |
 |---------------------------------------------------|---------|-------|--------|----------|--------------------|------------|------------|
