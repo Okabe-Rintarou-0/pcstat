@@ -65,13 +65,7 @@ pub fn get_file_page_stat(path: &str) -> Result<model::PcStatus, Box<dyn Error>>
     unsafe { libc::munmap(mmap_ptr, size) };
 
     Ok(model::PcStatus::new(
-        &path,
-        size,
-        pages,
-        cached,
-        uncached,
-        percent,
-        timestamp,
+        &path, size, pages, cached, uncached, percent, timestamp,
         mtime,
         // per_page_cache_stat,
     ))

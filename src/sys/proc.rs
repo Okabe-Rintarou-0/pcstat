@@ -1,3 +1,4 @@
+use shutil::pipe;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs;
@@ -15,7 +16,7 @@ pub fn get_proc_maps(pid: usize) -> Result<Vec<String>, Box<dyn Error>> {
     for line in reader.lines() {
         let line = line?.trim().to_string();
         let parts: Vec<_> = line.split_whitespace().collect();
-        if parts.len() == 6 && parts[5].starts_with('/'){
+        if parts.len() == 6 && parts[5].starts_with('/') {
             file_set.insert(parts[5].to_string());
         }
     }
@@ -25,4 +26,22 @@ pub fn get_proc_maps(pid: usize) -> Result<Vec<String>, Box<dyn Error>> {
     }
 
     Ok(maps)
+}
+
+pub fn get_all_children_pids(pid: usize) -> Result<Vec<usize>, Box<dyn Error>> {
+    let mut pids = vec![];
+    let output = pipe(vec![
+        vec!["ps", "-ef"],
+        vec!["awk", &format!("{{if($3==\"{pid}\") print $2}}")],
+    ])?;
+    let pid_strs: Vec<&str> = output.split('\n').collect();
+
+    for pid_str in pid_strs {
+        let r = pid_str.parse();
+        if let Ok(pid) = r {
+            pids.push(pid);
+        }
+    }
+
+    Ok(pids)
 }
