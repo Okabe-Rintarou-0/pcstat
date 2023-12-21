@@ -55,20 +55,20 @@ It also supports checking out the page cache status of a docker container(given 
 like: 
 ```shell
 docker run -itd --name nginx nginx:latest
-sudo ./pcstat --docker nginx --children --sort=asc
+sudo ./pcstat --docker nginx
 ```
 
 And, you will see the following output:
-| path                                       | size    | pages | cached | uncached | percent           | timestamp  | mtime      |
-|--------------------------------------------|---------|-------|--------|----------|-------------------|------------|------------|
-| /usr/lib/x86_64-linux-gnu/libssl.so.1.1    | 598104  | 147   | 141    | 6        | 95.91836734693877 | 1679646074 | 1651600176 |
-| /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 | 2954080 | 722   | 693    | 29       | 95.98337950138504 | 1679646074 | 1651600176 |
-| /lib/x86_64-linux-gnu/libc-2.31.so         | 2029560 | 496   | 487    | 9        | 98.18548387096774 | 1679646074 | 1645731760 |
-| /lib/x86_64-linux-gnu/libz.so.1.2.11       | 108936  | 27    | 27     | 0        | 100               | 1679646074 | 1648318854 |
-| /lib/x86_64-linux-gnu/libcrypt.so.1.1.0    | 202760  | 50    | 50     | 0        | 100               | 1679646074 | 1583857471 |
-| /lib/x86_64-linux-gnu/libpthread-2.31.so   | 157224  | 39    | 39     | 0        | 100               | 1679646074 | 1645731760 |
-| /lib/x86_64-linux-gnu/libnss_files-2.31.so | 51832   | 13    | 13     | 0        | 100               | 1679646074 | 1645731760 |
-| /lib/x86_64-linux-gnu/libdl-2.31.so        | 18816   | 5     | 5      | 0        | 100               | 1679646074 | 1645731760 |
+| path                                                                                                                                         | size    | pages | cached | uncached | percent           | timestamp  | mtime      |
+|----------------------------------------------------------------------------------------------------------------------------------------------|---------|-------|--------|----------|-------------------|------------|------------|
+| /var/lib/docker/overlay2/4fa86dacbbc38c540010c431ce78984e3001005212f6731c29bb299af172b969/diff/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 | 210968  | 52    | 52     | 0        | 100               | 1703137199 | 1696062665 |
+| /var/lib/docker/overlay2/4fa86dacbbc38c540010c431ce78984e3001005212f6731c29bb299af172b969/diff/usr/lib/x86_64-linux-gnu/libcrypt.so.1.1.0    | 206776  | 51    | 51     | 0        | 100               | 1703137199 | 1673045857 |
+| /var/lib/docker/overlay2/4fa86dacbbc38c540010c431ce78984e3001005212f6731c29bb299af172b969/diff/usr/lib/x86_64-linux-gnu/libc.so.6            | 1922136 | 470   | 470    | 0        | 100               | 1703137199 | 1696062665 |
+| /var/lib/docker/overlay2/4fa86dacbbc38c540010c431ce78984e3001005212f6731c29bb299af172b969/diff/usr/lib/x86_64-linux-gnu/libz.so.1.2.13       | 121280  | 30    | 30     | 0        | 100               | 1703137199 | 1667651086 |
+| /var/lib/docker/overlay2/ce2a5e72e92bf51a55f1beaf7fd7460e403f8edeb51e3fe13b340a7c26c62032/diff/usr/sbin/nginx                                | 1536808 | 376   | 372    | 4        | 98.93617021276596 | 1703137199 | 1698163831 |
+| /var/lib/docker/overlay2/ce2a5e72e92bf51a55f1beaf7fd7460e403f8edeb51e3fe13b340a7c26c62032/diff/usr/lib/x86_64-linux-gnu/libcrypto.so.3       | 4713752 | 1151  | 976    | 175      | 84.79582971329279 | 1703137199 | 1698083542 |
+| /var/lib/docker/overlay2/4fa86dacbbc38c540010c431ce78984e3001005212f6731c29bb299af172b969/diff/usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.11.2 | 629384  | 154   | 99     | 55       | 64.28571428571429 | 1703137199 | 1672587846 |
+| /var/lib/docker/overlay2/ce2a5e72e92bf51a55f1beaf7fd7460e403f8edeb51e3fe13b340a7c26c62032/diff/usr/lib/x86_64-linux-gnu/libssl.so.3          | 696352  | 171   | 106    | 65       | 61.98830409356725 | 1703137199 | 1698083542 |
 
 ## How it works
 + use syscall `mmap`
