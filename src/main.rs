@@ -2,12 +2,14 @@ mod error;
 mod model;
 mod sys;
 
-use std::{collections::HashSet, fs};
+use std::{collections::HashSet, fs, process};
 
 use argparse::{ArgumentParser, List, Store, StoreTrue};
-use docker_api::Docker;
 use sys::*;
 use tabled::{Style, Table};
+
+#[macro_use]
+extern crate lazy_static;
 
 struct Options {
     pub pid: isize,
@@ -80,25 +82,20 @@ async fn main() {
     let do_filter = opt.le > 0f64 || opt.ge < 100.0;
 
     let mut pids = vec![];
+    let mut container_lower_dirs = vec![];
     let use_docker = opt.docker.len() > 0;
-    let mut container_lower_dirs = vec!();
     if use_docker {
-        let docker = Docker::unix("/var/run/docker.sock");
-        let container = docker.containers().get(&opt.docker);
-        let info = container.inspect().await.unwrap_or_else(|err| {
-            println!("{}", err);
-            std::process::exit(-1);
+        let info = docker::get_container_info(&opt.docker).await .unwrap_or_else(|e| {
+            println!("{}", e);
+            process::exit(-1);
         });
-        if let Some(graph_driver) = info.graph_driver {
-            let lower_dirs = graph_driver.data.get("LowerDir");
-            if let Some(lower_dirs) = lower_dirs {
-                for lower_dir in lower_dirs.split(":") {
-                    container_lower_dirs.push(lower_dir.to_string());
-                }
-            }
+        
+        let pid = docker::parse_container_pid(&info);
+        if pid <= 0 {
+            println!("Cannot find specified container's pid!");
+            process::exit(-1); 
         }
-
-        let pid = info.state.unwrap().pid.unwrap().clone();
+        docker::parse_container_lower_dirs(&info, &mut container_lower_dirs);
         pids.push(pid as usize);
     } else if opt.pid >= 0 {
         pids.push(opt.pid as usize);
@@ -149,7 +146,6 @@ async fn main() {
         }
         let result = pc::get_file_page_stat(&file_path);
         if result.is_err() {
-            // println!("failed file {}, reason: {}", file_path, result.unwrap_err());
             // skip error files
             continue;
         }
