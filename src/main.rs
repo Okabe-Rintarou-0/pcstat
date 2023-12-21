@@ -1,11 +1,11 @@
-mod docker;
 mod error;
 mod model;
 mod sys;
 
-use std::collections::HashSet;
+use std::{collections::HashSet, fs};
 
 use argparse::{ArgumentParser, List, Store, StoreTrue};
+use docker_api::Docker;
 use sys::*;
 use tabled::{Style, Table};
 
@@ -20,7 +20,8 @@ struct Options {
     pub files: Vec<String>,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let mut opt = Options {
         pid: -1,
         children: false,
@@ -64,16 +65,10 @@ fn main() {
             Store,
             "Cache percentage of files should be less than le.",
         );
-        ap.refer(&mut opt.docker).add_option(
-            &["--docker"],
-            Store,
-            "Docker container name or id.",
-        );
-        ap.refer(&mut opt.markdown).add_option(
-            &["--markdown"],
-            StoreTrue,
-            "Markdown style table.",
-        );
+        ap.refer(&mut opt.docker)
+            .add_option(&["--docker"], Store, "Docker container name or id.");
+        ap.refer(&mut opt.markdown)
+            .add_option(&["--markdown"], StoreTrue, "Markdown style table.");
         ap.parse_args_or_exit();
     }
 
@@ -85,31 +80,47 @@ fn main() {
     let do_filter = opt.le > 0f64 || opt.ge < 100.0;
 
     let mut pids = vec![];
+    let use_docker = opt.docker.len() > 0;
+    let mut container_lower_dirs = vec!();
+    if use_docker {
+        let docker = Docker::unix("/var/run/docker.sock");
+        let container = docker.containers().get(&opt.docker);
+        let info = container.inspect().await.unwrap_or_else(|err| {
+            println!("{}", err);
+            std::process::exit(-1);
+        });
+        if let Some(graph_driver) = info.graph_driver {
+            let lower_dirs = graph_driver.data.get("LowerDir");
+            if let Some(lower_dirs) = lower_dirs {
+                for lower_dir in lower_dirs.split(":") {
+                    container_lower_dirs.push(lower_dir.to_string());
+                }
+            }
+        }
 
-    if opt.pid >= 0 {
+        let pid = info.state.unwrap().pid.unwrap().clone();
+        pids.push(pid as usize);
+    } else if opt.pid >= 0 {
         pids.push(opt.pid as usize);
     }
 
-    if opt.docker.len() > 0 {
-        if let Ok(pid) = docker::get_container_pid(&opt.docker) {
-            pids.push(pid);
-        }
-    }
-
+    let pid_cnt = pids.len();
     if opt.children {
-        match proc::get_all_children_pids(opt.pid as usize) {
-            Err(err) => {
-                eprintln!("{:?}", err);
-                std::process::exit(-1);
-            }
-            Ok(children_pids) => {
-                for pid in children_pids {
-                    pids.push(pid);
+        for i in 0..pid_cnt {
+            let pid = pids[i];
+            match proc::get_all_children_pids(pid) {
+                Err(err) => {
+                    eprintln!("{:?}", err);
+                    std::process::exit(-1);
+                }
+                Ok(children_pids) => {
+                    for pid in children_pids {
+                        pids.push(pid);
+                    }
                 }
             }
         }
     }
-
     let mut file_set = HashSet::new();
     for pid in pids {
         let result = sys::proc::get_proc_maps(pid);
@@ -119,7 +130,6 @@ fn main() {
         }
 
         let result = result.unwrap();
-
         for file in result {
             if !file_set.contains(&file) {
                 file_set.insert(file.to_string());
@@ -130,9 +140,16 @@ fn main() {
 
     let mut stats = vec![];
 
-    for file_path in opt.files {
+    for mut file_path in opt.files {
+        for lower_dir in container_lower_dirs.iter() {
+            let dir_path = format!("{}{}", lower_dir, &file_path);
+            if fs::metadata(&dir_path).is_ok() {
+                file_path = dir_path;
+            }
+        }
         let result = pc::get_file_page_stat(&file_path);
         if result.is_err() {
+            // println!("failed file {}, reason: {}", file_path, result.unwrap_err());
             // skip error files
             continue;
         }
