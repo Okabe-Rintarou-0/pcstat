@@ -55,7 +55,7 @@ It also supports checking out the page cache status of a docker container(given 
 like: 
 ```shell
 docker run -itd --name nginx nginx:latest
-sudo ./pcstat --docker nginx
+sudo ./pcstat --docker nginx --children
 ```
 
 And, you will see the following output:
