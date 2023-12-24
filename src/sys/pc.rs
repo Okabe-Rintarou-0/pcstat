@@ -1,6 +1,7 @@
 use super::file;
 use crate::error;
 use crate::model;
+use crate::model::pc::Block;
 use libc::{c_void, sysconf, _SC_PAGESIZE};
 use std::error::Error;
 use std::ptr;
@@ -56,17 +57,37 @@ pub fn get_file_page_stat(path: &str) -> Result<model::PcStatus, Box<dyn Error>>
     let percent = (cached as f64 / pages as f64) * 100_f64;
     let uncached = pages - cached;
 
-    // let per_page_cache_stat = results
-    //     .iter()
-    //     .map(|x| if (x & 0b1) == 1 { true } else { false })
-    //     .collect();
+    let mut cached_index = vec![];
+    let mut begin_idx = None;
+    for (idx, result) in results.iter().enumerate() {
+        if (result & 0b1) == 1 {
+            if begin_idx.is_none() {
+                begin_idx = Some(idx)
+            }
+            continue;
+        }
+        if begin_idx.is_some() {
+            cached_index.push(Block::new(begin_idx.unwrap(), idx));
+            begin_idx = None
+        }
+    }
+    // add last cached block if exists
+    if begin_idx.is_some() {
+        cached_index.push(Block::new(begin_idx.unwrap(), results.len() - 1));
+    }
 
     // unmap
     unsafe { libc::munmap(mmap_ptr, size) };
 
     Ok(model::PcStatus::new(
-        &path, size, pages, cached, uncached, percent, timestamp,
+        &path,
+        size,
+        pages,
+        cached,
+        uncached,
+        percent,
+        timestamp,
         mtime,
-        // per_page_cache_stat,
+        cached_index,
     ))
 }

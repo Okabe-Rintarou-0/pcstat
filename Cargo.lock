@@ -572,6 +572,8 @@ dependencies = [
  "bollard",
  "lazy_static",
  "libc",
+ "serde",
+ "serde_json",
  "shutil",
  "tabled",
  "tokio",
